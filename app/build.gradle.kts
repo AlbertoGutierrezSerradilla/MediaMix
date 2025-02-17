@@ -7,6 +7,10 @@ android {
     namespace = "com.example.mediamix"
     compileSdk = 35
 
+    viewBinding {
+        enable = true
+    }
+
     defaultConfig {
         applicationId = "com.example.mediamix"
         minSdk = 24

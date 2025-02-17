@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/nav_biblioteca"
+        android:icon="@drawable/ic_biblioteca"
+        android:title="Biblioteca"
+        app:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/nav_grabadora"
+        android:icon="@drawable/ic_grabadora"
+        android:title="Grabar"
+        app:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/nav_ajustes"
+        android:icon="@drawable/ic_ajustes"
+        android:title="Ajustes"
+        app:showAsAction="ifRoom"/>
+
+</menu>
