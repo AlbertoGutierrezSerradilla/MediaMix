@@ -1,5 +1,6 @@
 package com.example.mediamix
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -17,6 +18,13 @@ class FragmentoGrabadora : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentGrabadoraBinding.inflate(inflater, container, false)
+
+        // Configurar botón para iniciar RecordingActivity
+        binding.btnIniciarGrabacion.setOnClickListener {
+            val intent = Intent(activity, RecordingActivity::class.java)
+            startActivity(intent)
+        }
+
         return binding.root
     }
 
