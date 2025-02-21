@@ -12,20 +12,37 @@
     <androidx.camera.view.PreviewView
         android:id="@+id/viewFinder"
         android:layout_width="match_parent"
-        android:layout_height="300dp"/>
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
 
-    <Button
-        android:id="@+id/btnRecordAudio"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Grabar Audio"
-        android:layout_marginTop="16dp"/>
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:padding="16dp">
 
-    <Button
-        android:id="@+id/btnRecordVideo"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Grabar Video"
-        android:layout_marginTop="16dp"/>
+        <ImageButton
+            android:id="@+id/btnRecordAudio"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:background="@drawable/btn_circle"
+            android:src="@drawable/ic_record_audio"
+            android:contentDescription="Grabar Audio"
+            android:scaleType="centerInside"/>
+
+        <View
+            android:layout_width="32dp"
+            android:layout_height="80dp"/>
+
+        <ImageButton
+            android:id="@+id/btnRecordVideo"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:background="@drawable/btn_circle"
+            android:src="@drawable/ic_record_video"
+            android:contentDescription="Grabar Video"
+            android:scaleType="centerInside"/>
+    </LinearLayout>
 
 </LinearLayout>
