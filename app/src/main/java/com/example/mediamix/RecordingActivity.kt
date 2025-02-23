@@ -50,20 +50,25 @@ class RecordingActivity : AppCompatActivity() {
         binding = ActivityRecordingBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Solicita permisos necesarios (audio, cámara, etc.)
         requestPermissions()
+
+        // Asigna listeners a los botones de grabación
         binding.btnRecordVideo.setOnClickListener { toggleVideoRecording() }
         binding.btnRecordAudio.setOnClickListener { toggleAudioRecording() }
 
+        // Inicia la cámara
         startCamera()
+        // Crea un hilo para manejar la cámara en segundo plano
         cameraExecutor = Executors.newSingleThreadExecutor()
     }
 
+    // Solicita los permisos de cámara y audio; si no se conceden, se cierra la actividad
     private fun requestPermissions() {
         val permissions = mutableListOf(
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.CAMERA
         )
-
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.READ_MEDIA_VIDEO)
             permissions.add(Manifest.permission.READ_MEDIA_AUDIO)
@@ -83,7 +88,7 @@ class RecordingActivity : AppCompatActivity() {
         }
     }
 
-    // Funciones para la grabación de audio
+    // Alterna entre iniciar y detener la grabación de audio
     private fun toggleAudioRecording() {
         if (isRecordingAudio) {
             stopAudioRecording()
@@ -92,6 +97,7 @@ class RecordingActivity : AppCompatActivity() {
         }
     }
 
+    // Configura parámetros y comienza a grabar audio
     private fun startAudioRecording() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED
@@ -115,6 +121,7 @@ class RecordingActivity : AppCompatActivity() {
         isRecordingAudio = true
         audioRecord?.startRecording()
 
+        // Hilo que escribirá el audio en un archivo mientras grabamos
         recordingThread = Thread {
             writeAudioDataToFile(bufferSize)
         }
@@ -122,6 +129,7 @@ class RecordingActivity : AppCompatActivity() {
         binding.btnRecordAudio.setImageResource(R.drawable.ic_stop)
     }
 
+    // Lee datos de audio y los escribe en el archivo
     private fun writeAudioDataToFile(bufferSize: Int) {
         try {
             FileOutputStream(audioFile).use { outputStream ->
@@ -138,6 +146,7 @@ class RecordingActivity : AppCompatActivity() {
         }
     }
 
+    // Detiene la grabación de audio y libera recursos
     private fun stopAudioRecording() {
         isRecordingAudio = false
         audioRecord?.stop()
@@ -148,10 +157,9 @@ class RecordingActivity : AppCompatActivity() {
         Toast.makeText(this, "🎙️ Audio guardado!!", Toast.LENGTH_SHORT).show()
     }
 
-    // Función para inicializar la cámara y configurar la grabación de video
+    // Inicia la cámara con CameraX y configura el preview y la grabación
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
 
@@ -168,14 +176,19 @@ class RecordingActivity : AppCompatActivity() {
 
             try {
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview, videoCapture)
+                cameraProvider.bindToLifecycle(
+                    this,
+                    cameraSelector,
+                    preview,
+                    videoCapture
+                )
             } catch (exc: Exception) {
                 Log.e("RecordingActivity", "Error al iniciar la cámara", exc)
             }
         }, ContextCompat.getMainExecutor(this))
     }
 
-    // Funciones para la grabación de video
+    // Alterna entre iniciar y detener la grabación de video
     private fun toggleVideoRecording() {
         if (isRecordingVideo) {
             stopVideoRecording()
@@ -184,6 +197,7 @@ class RecordingActivity : AppCompatActivity() {
         }
     }
 
+    // Comienza a grabar video, habilitando audio si está permitido
     private fun startVideoRecording() {
         val videoFile = getOutputFile("VIDEO")
         val outputOptions = FileOutputOptions.Builder(videoFile).build()
@@ -214,6 +228,7 @@ class RecordingActivity : AppCompatActivity() {
         isRecordingVideo = true
     }
 
+    // Detiene la grabación de video y muestra un mensaje
     private fun stopVideoRecording() {
         activeRecording?.stop()
         activeRecording = null
@@ -222,23 +237,23 @@ class RecordingActivity : AppCompatActivity() {
         Toast.makeText(this, "🎬 Video guardado!!", Toast.LENGTH_SHORT).show()
     }
 
-    // Función para generar el archivo de salida (audio o video)
+    // Genera un archivo de salida para audio (.pcm) o video (.mp4)
     private fun getOutputFile(type: String): File {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val directory = when (type) {
             "AUDIO" -> getExternalFilesDir(Environment.DIRECTORY_MUSIC)
             else -> getExternalFilesDir(Environment.DIRECTORY_MOVIES)
         }
-
         directory?.let {
             if (!it.exists()) {
                 it.mkdirs()
             }
         }
-
-        val extension = if (type == "AUDIO") ".pcm" else ".mp4"  // Ahora guarda en .pcm
+        val extension = if (type == "AUDIO") ".pcm" else ".mp4"
         return File(directory, "${type}_$timestamp$extension")
     }
+
+    // Libera los recursos del Executor al finalizar la actividad
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()
