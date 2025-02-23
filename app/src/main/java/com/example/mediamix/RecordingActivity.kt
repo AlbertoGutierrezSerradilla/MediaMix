@@ -5,20 +5,30 @@ import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.*
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.video.*
+import androidx.camera.video.FileOutputOptions
+import androidx.camera.video.Quality
+import androidx.camera.video.QualitySelector
+import androidx.camera.video.Recorder
+import androidx.camera.video.Recording
+import androidx.camera.video.VideoCapture
+import androidx.camera.video.VideoRecordEvent
 import androidx.core.content.ContextCompat
 import com.example.mediamix.databinding.ActivityRecordingBinding
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -73,6 +83,72 @@ class RecordingActivity : AppCompatActivity() {
         }
     }
 
+    // Funciones para la grabación de audio
+    private fun toggleAudioRecording() {
+        if (isRecordingAudio) {
+            stopAudioRecording()
+        } else {
+            startAudioRecording()
+        }
+    }
+
+    private fun startAudioRecording() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            Toast.makeText(this, "Permiso de audio no concedido", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val sampleRate = 44100
+        val channelConfig = AudioFormat.CHANNEL_IN_MONO
+        val audioFormat = AudioFormat.ENCODING_PCM_16BIT
+        val bufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
+        if (bufferSize <= 0) {
+            Log.e("RecordingActivity", "Tamaño de buffer inválido")
+            return
+        }
+
+        audioFile = getOutputFile("AUDIO")
+        audioRecord = AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, channelConfig, audioFormat, bufferSize)
+
+        isRecordingAudio = true
+        audioRecord?.startRecording()
+
+        recordingThread = Thread {
+            writeAudioDataToFile(bufferSize)
+        }
+        recordingThread?.start()
+        binding.btnRecordAudio.setImageResource(R.drawable.ic_stop)
+    }
+
+    private fun writeAudioDataToFile(bufferSize: Int) {
+        try {
+            FileOutputStream(audioFile).use { outputStream ->
+                val audioData = ByteArray(bufferSize)
+                while (isRecordingAudio) {
+                    val read = audioRecord?.read(audioData, 0, bufferSize) ?: 0
+                    if (read > 0) {
+                        outputStream.write(audioData, 0, read)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("RecordingActivity", "Error al escribir audio en archivo", e)
+        }
+    }
+
+    private fun stopAudioRecording() {
+        isRecordingAudio = false
+        audioRecord?.stop()
+        audioRecord?.release()
+        audioRecord = null
+        recordingThread?.join()
+        binding.btnRecordAudio.setImageResource(R.drawable.ic_record_audio)
+        Toast.makeText(this, "🎙️ Audio guardado!!", Toast.LENGTH_SHORT).show()
+    }
+
+    // Función para inicializar la cámara y configurar la grabación de video
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
@@ -99,6 +175,7 @@ class RecordingActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
+    // Funciones para la grabación de video
     private fun toggleVideoRecording() {
         if (isRecordingVideo) {
             stopVideoRecording()
@@ -115,24 +192,25 @@ class RecordingActivity : AppCompatActivity() {
             this, Manifest.permission.RECORD_AUDIO
         ) == PackageManager.PERMISSION_GRANTED
 
-        val recording = videoCapture?.output?.prepareRecording(this, outputOptions)
-
-        if (hasAudioPermission) {
-            recording?.withAudioEnabled()
-        }
-
-        activeRecording = recording?.start(ContextCompat.getMainExecutor(this)) { recordEvent ->
+        val pendingRecording = videoCapture?.output
+            ?.prepareRecording(this, outputOptions)
+            ?.apply {
+                if (hasAudioPermission) {
+                    withAudioEnabled()
+                }
+            }
+        activeRecording = pendingRecording?.start(ContextCompat.getMainExecutor(this)) { recordEvent ->
             if (recordEvent is VideoRecordEvent.Finalize) {
                 if (recordEvent.hasError()) {
                     Log.e("RecordingActivity", "Error al grabar video: ${recordEvent.cause}", recordEvent.cause)
                 } else {
-                    Toast.makeText(this, "Video guardado en: ${videoFile.absolutePath}", Toast.LENGTH_SHORT).show()
+                    Log.e("RecordingActivity", "Video guardado en: ${videoFile.absolutePath}", recordEvent.cause)
                 }
-                binding.btnRecordVideo.setImageResource(R.drawable.ic_record_video) // Restaurar icono original
+                binding.btnRecordVideo.setImageResource(R.drawable.ic_record_video)
+                isRecordingVideo = false
             }
         }
-
-        binding.btnRecordVideo.setImageResource(R.drawable.ic_stop) // Cambiar a icono de stop
+        binding.btnRecordVideo.setImageResource(R.drawable.ic_stop)
         isRecordingVideo = true
     }
 
@@ -140,79 +218,27 @@ class RecordingActivity : AppCompatActivity() {
         activeRecording?.stop()
         activeRecording = null
         isRecordingVideo = false
-
-        binding.btnRecordVideo.setImageResource(R.drawable.ic_record_video) // Restaurar icono original
+        binding.btnRecordVideo.setImageResource(R.drawable.ic_record_video)
+        Toast.makeText(this, "🎬 Video guardado!!", Toast.LENGTH_SHORT).show()
     }
 
-    private fun toggleAudioRecording() {
-        if (isRecordingAudio) {
-            stopAudioRecording()
-        } else {
-            startAudioRecording()
-        }
-    }
-
-    private fun startAudioRecording() {
-        val sampleRate = 44100
-        val channelConfig = AudioFormat.CHANNEL_IN_MONO
-        val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-        val bufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
-
-        if (bufferSize == AudioRecord.ERROR || bufferSize == AudioRecord.ERROR_BAD_VALUE) {
-            Log.e("RecordingActivity", "Tamaño de buffer inválido")
-            return
+    // Función para generar el archivo de salida (audio o video)
+    private fun getOutputFile(type: String): File {
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val directory = when (type) {
+            "AUDIO" -> getExternalFilesDir(Environment.DIRECTORY_MUSIC)
+            else -> getExternalFilesDir(Environment.DIRECTORY_MOVIES)
         }
 
-        audioFile = getOutputFile("AUDIO")
-        audioRecord = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            sampleRate,
-            channelConfig,
-            audioFormat,
-            bufferSize
-        )
-
-        isRecordingAudio = true
-        audioRecord?.startRecording()
-
-        recordingThread = Thread {
-            writeAudioDataToFile(bufferSize)
-        }.apply { start() }
-
-        binding.btnRecordAudio.setImageResource(R.drawable.ic_stop)
-    }
-
-    private fun writeAudioDataToFile(bufferSize: Int) {
-        val outputStream = FileOutputStream(audioFile)
-        val audioData = ByteArray(bufferSize)
-
-        while (isRecordingAudio) {
-            val read = audioRecord?.read(audioData, 0, bufferSize) ?: 0
-            if (read > 0) {
-                outputStream.write(audioData, 0, read)
+        directory?.let {
+            if (!it.exists()) {
+                it.mkdirs()
             }
         }
 
-        outputStream.close()
+        val extension = if (type == "AUDIO") ".pcm" else ".mp4"  // Ahora guarda en .pcm
+        return File(directory, "${type}_$timestamp$extension")
     }
-
-    private fun stopAudioRecording() {
-        isRecordingAudio = false
-        audioRecord?.stop()
-        audioRecord?.release()
-        audioRecord = null
-        recordingThread?.join()
-
-        binding.btnRecordAudio.setImageResource(R.drawable.ic_record_audio)
-        Toast.makeText(this, "Audio guardado en: ${audioFile?.absolutePath}", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun getOutputFile(type: String): File {
-        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(System.currentTimeMillis())
-        val extension = if (type == "AUDIO") ".pcm" else ".mp4"
-        return File(getExternalFilesDir(null), "${type}_$timestamp$extension")
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()

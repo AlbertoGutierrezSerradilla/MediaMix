@@ -1,8 +1,19 @@
 <resources>
     <string name="app_name">MediaMix</string>
     <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="pantalla_de_ajustes">Pantalla de Ajustes</string>
     <string name="biblioteca">Biblioteca</string>
     <string name="grabadora">Grabadora</string>
+    <string name="modo_oscuro">Modo Oscuro</string>
+    <string name="calidad_de_video">Calidad de Video</string>
+    <string name="eliminar_archivos">Eliminar Archivos</string>
+    <string name="volumen_del_sistema">Volumen del sistema</string>
+    <string name="nombre_del_archivo">Nombre del archivo</string>
+    <string name="reproducir_archivo">Reproducir archivo</string>
+    <string name="eliminar_archivo">Eliminar archivo</string>
+    <string name="compartir_archivo">Compartir archivo</string>
+    <string name="grabacion_audio_video">Grabación de Audio y Video</string>
+    <string name="icono_de_grabacion">Icono de Grabación</string>
+    <string name="iniciar_grabacion">Iniciar Grabación</string>
+    <string name="ajustes">Ajustes</string>
 </resources>

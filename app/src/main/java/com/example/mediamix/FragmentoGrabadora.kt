@@ -27,6 +27,12 @@ class FragmentoGrabadora : Fragment() {
 
         return binding.root
     }
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        val cardView = binding.root.findViewById<androidx.cardview.widget.CardView>(R.id.crdGrabar)
+        cardView.setCardBackgroundColor(resources.getColor(R.color.white, null))
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()

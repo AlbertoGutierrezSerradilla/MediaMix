@@ -3,7 +3,9 @@
     <style name="Base.Theme.MediaMix" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="cardBackgroundColor">@android:color/white</item>
     </style>
 
     <style name="Theme.MediaMix" parent="Base.Theme.MediaMix" />
+
 </resources>
